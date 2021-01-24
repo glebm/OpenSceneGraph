@@ -43,8 +43,7 @@ class FramePtr
 
         void cleanup()
         {
-            if (_ptr) av_free(_ptr);
-            _ptr = 0;
+            av_frame_free(&_ptr);
         }
         
         
@@ -107,8 +106,7 @@ private:
     int64_t                 m_packet_pts;
     
     FramePtr                m_frame;
-    FramePtr                m_frame_rgba;
-    Buffer                  m_buffer_rgba[2];
+    FramePtr                m_frame_rgba[2];
     int                     m_writeBuffer;
 
     void *                  m_user_data;
@@ -177,7 +175,7 @@ inline double FFmpegDecoderVideo::frameRate() const
 
 inline const uint8_t * FFmpegDecoderVideo::image() const
 {
-    return &((m_buffer_rgba[1-m_writeBuffer])[0]);
+    return &(m_frame_rgba[1 - m_writeBuffer]->data[0]);
 }
 
 

@@ -98,12 +98,15 @@ void FFmpegDecoderVideo::open(AVStream * const stream)
     m_frame.reset(av_frame_alloc());
 
     // Allocate converted RGB frame
-    m_frame_rgba.reset(av_frame_alloc());
-    m_buffer_rgba[0].resize(avpicture_get_size(AV_PIX_FMT_RGB24, width(), height()));
-    m_buffer_rgba[1].resize(m_buffer_rgba[0].size());
-
-    // Assign appropriate parts of the buffer to image planes in m_frame_rgba
-    avpicture_fill((AVPicture *) (m_frame_rgba).get(), &(m_buffer_rgba[0])[0], AV_PIX_FMT_RGB24, width(), height());
+    for (size_t i = 0; i < 2; ++i) {
+        m_frame_rgba[i].reset(av_frame_alloc());
+        AVFrame *frame = m_frame_rgba[i];
+        const AVPixelFormat pix_fmt = AV_PIX_FMT_RGB24;
+        frame->format = pix_fmt;
+        frame->width  = width();
+        frame->height = height();
+        av_image_alloc(frame->data, frame->linesize, width(), height(), pix_fmt, /*align=*/32);
+    }
 
     // Override get_buffer()/release_buffer() from codec context in order to retrieve the PTS of each frame.
     m_context->opaque = this;
@@ -335,10 +338,7 @@ void FFmpegDecoderVideo::publishFrame(const double delay, bool audio_disabled)
 #endif
 
     AVPicture * const src = (AVPicture *) m_frame.get();
-    AVPicture * const dst = (AVPicture *) m_frame_rgba.get();
-
-    // Assign appropriate parts of the buffer to image planes in m_frame_rgba
-    avpicture_fill((AVPicture *) (m_frame_rgba).get(), &(m_buffer_rgba[m_writeBuffer])[0], AV_PIX_FMT_RGB24, width(), height());
+    AVPicture * const dst = (AVPicture *) m_frame_rgba[m_writeBuffer].get();
 
     // Convert YUVA420p (i.e. YUV420p plus alpha channel) using our own routine
 
